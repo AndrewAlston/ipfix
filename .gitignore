@@ -1,0 +1,12 @@
+CMakeCache.txt
+CMakeDoxy*
+CMakeFiles
+Doxy*
+Testing
+build.ninja
+cmake-build-debug
+cmake_install*
+docs
+ipfix
+docs/
+.ninja*
