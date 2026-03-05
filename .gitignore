@@ -10,3 +10,7 @@ docs
 ipfix
 docs/
 .ninja*
+.idea
+.cmake
+tmp
+*.pcap
