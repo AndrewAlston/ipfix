@@ -11,6 +11,7 @@
 
 int main() {
     pthread_t sock_thread;
+    pthread_t sock_thread6;
     struct sock_set *s = calloc(1, sizeof(struct sock_set));
     struct sock_set *s6 = calloc(1, sizeof(struct sock_set));
     if (!s) {
@@ -21,11 +22,12 @@ int main() {
     s->buf_size = 9000;
     s->buf_len = 65534;
     pthread_create(&sock_thread, NULL, read_socket_v4, s);
-    s6->port = 2054;
+/*    s6->port = 2054;
     s6->buf_size = 9000;
     s6->buf_len = 65534;
-    pthread_create(&sock_thread, NULL, read_socket_v6, s6);
+    pthread_create(&sock_thread6, NULL, read_socket_v6, s6); */
     pthread_join(sock_thread, NULL);
+    // pthread_join(sock_thread6, NULL);
     if (s->error) {
         printf("Error: %s\n", s->errstr);
     }

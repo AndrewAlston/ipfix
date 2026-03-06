@@ -318,16 +318,55 @@ void *read_socket_v4(void *data) {
                     }
                     memcpy(&records[flow_count++], &tmp_record, sizeof(tmp_record));
                 }
+                bool have_interface = false;
+                char unknown_interface[256] = "Unknown";
+                char router[256] = {0};
+                __u8 *did = (void *)&hdr->domain_id;
+                if (did[0] == 10) {
+                    snprintf(router, 256, "ICOLO-MX204");
+                } else if (did[0] == 15) {
+                    snprintf(router, 256, "ICOLO-ACX7100");
+                } else {
+                    snprintf(router, 256, "UNKNOWN");
+                }
                 for (int i = 0; i < flow_count; i++) {
                     __u32 dip = ntohl(records[i].destination_ipv4);
-                    if (records[i].protocol_id == 17) {
+                    __u32 source_asn = htonl(records[i].bgp_source_asn);
+                    // if (source_asn == 30844 || source_asn == 36937 || source_asn == 37006) {
+                    if (source_asn == 15169) {
                         char ip_src[INET_ADDRSTRLEN] = {0};
                         char ip_dst[INET_ADDRSTRLEN] = {0};
+                        __u32 mask = htonl((~(__u32)0) << (32-records[i].source_ipv4_prefix_len));
+                        records[i].source_ipv4 = records[i].source_ipv4&mask;
+                        mask = htonl((~(__u32)0) << (32-records[i].destination_ipv4_prefix_len));
+                        records[i].destination_ipv4 = records[i].destination_ipv4&mask;
                         inet_ntop(AF_INET, &records[i].source_ipv4, ip_src, INET_ADDRSTRLEN);
                         inet_ntop(AF_INET, &records[i].destination_ipv4, ip_dst, INET_ADDRSTRLEN);
-                        printf("[Protocol %d] %s:%u -> %s:%u [SRC ASN: %d -> DST ASN: %d]\n",
-                               records[i].protocol_id, ip_src, htons(records[i].source_port),
-                               ip_dst, htons(records[i].destination_port),
+                        __u32 ingress = htonl(records[i].ingress_interface);
+                        char *iface = NULL;
+                        if (did[0] == 10) {
+                            for (int inif = 0; inif < 11; inif++) {
+                                if (ifaces[inif].ifindex == ingress) {
+                                    iface = ifaces[inif].if_name;
+                                    have_interface = true;
+                                    break;
+                                }
+                            }
+                        } else if (did[0] == 15) {
+                            for (int inif = 0; inif < 52; inif++) {
+                                if (ifaces_acx7100[inif].ifindex == ingress) {
+                                    iface = ifaces_acx7100[inif].if_name;
+                                    have_interface = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!have_interface) {
+                            iface = unknown_interface;
+                        }
+                        printf("[%s] [Protocol %d] [Interface %s] %s/%d -> %s/%d [SRC ASN: %d -> DST ASN: %d]\n",
+                               router, records[i].protocol_id, iface,  ip_src, records[i].source_ipv4_prefix_len,
+                               ip_dst, records[i].destination_ipv4_prefix_len,
                                htonl(records[i].bgp_source_asn), htonl(records[i].bgp_destination_asn));
                     }
                 }
